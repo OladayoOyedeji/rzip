@@ -1,6 +1,7 @@
 #include <sys/stat.h>
 #include <iostream>
 #include <cstdio>
+#include <string>
 #include <cstring>
 
 struct tar_header {
@@ -29,14 +30,16 @@ void fill_header(const char* filepath) {
 
     // 2. Fill Filename
     strncpy(header.filename, filepath, 99);
-
+    std::cout << header.filename << std::endl;
     // 3. Fill Mode (Octal string)
     // We only want the last 3 octal digits (permissions)
     sprintf(header.mode, "%07o", st.st_mode & 0777);
+    std::cout << header.mode << std::endl;
 
     // 4. Fill UID/GID (Octal string)
     sprintf(header.uid, "%07o", st.st_uid);
     sprintf(header.gid, "%07o", st.st_gid);
+    std::cout << header.uid << ' ' << header.gid << std::endl;
 
     // 5. Fill Size (11 octal digits + null/space)
     // Directories must have size 0 in tar
@@ -47,18 +50,21 @@ void fill_header(const char* filepath) {
         sprintf(header.size, "%011o", (unsigned int)st.st_size);
         header.typeflag[0] = '0'; // Normal file
     }
+    
+    std::cout << header.typeflag << std::endl;
 
     // 6. Fill Modification Time
     sprintf(header.mtime, "%011o", (unsigned int)st.st_mtime);
-
+    
+    std::cout << header.mtime << std::endl;
+    
     // Now you would calculate the checksum and write to file...
 }
 
 int main()
 {
     char filepath[1024];
-    std::string filepath = GET_CURRENT_DIR(filepath, sizeof(filepath));
-    fill_header(filepath + "/robert.txt");
+    fill_header("robert.txt");
     
     return 0;
 }

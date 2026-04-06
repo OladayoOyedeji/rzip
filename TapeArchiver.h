@@ -3,7 +3,10 @@
 #include <iostream>
 #include <sys/stat.h>
 #include <string>
-void tar_file(const char * file_name, std::string & target_tar_file);
+#include <cstdio>
+#include <cstring>
+#include "File.h"
+// void tar_file(const char * file_name, std::string & target_tar_file);
 
 namespace fs = std::filesystem;
 
@@ -18,48 +21,91 @@ struct tar_header {
     char typeflag[1];
 };
 
-unsigned int getsize(const char *in)
-{
-    unsigned int size = 0;
-    unsigned int j;
-    unsigned int count = 1;
-
-    for (j = 11; j > 0; j--, count *= 8)
-        size += ((in[j - 1] - '0') * count);
-
-    return size;
-}
-
+unsigned int getsize(const char *in);
+void concantenate(std::string & s, const std::string & s1);
 class Tar
 {
-    Tar();
-    void writeHeader(const char * file_name,
-                     std::string & target_tar_file)
+public:
+    Tar()
+    {}
+    void writeHeader(const char * filepath)
     {
-        struct stat file_info;
-        stat(file_name, &file_info);
+        struct stat st;
+        tar_header header;
+    
+        // 0. Initialize header with nulls
+        memset(&header, 0, sizeof(header));
 
-        file_info.st_size; file_info.st_mode; file_info.st_mtime;
-        file_info.st_uid;  file_info.st_gid;  file_info.st_size;
+        // 1. Get system stats
+        if (stat(filepath, &st) != 0) {
+            perror("stat");
+            return;
+        }
+
+        // 2. Fill Filename
+        strncpy(header.filename, filepath, 99);
+        concantenate(buff, header.filename);
+        // 3. Fill Mode (Octal string)
+        // We only want the last 3 octal digits (permissions)
+        sprintf(header.mode, "%07o", st.st_mode & 0777);
+        concantenate(buff, header.mode);
+
+        // 4. Fill UID/GID (Octal string)
+        sprintf(header.uid, "%07o", st.st_uid);
+        sprintf(header.gid, "%07o", st.st_gid);
+        concantenate(buff, header.gid);
+        concantenate(buff, header.uid);
+
+        // 5. Fill Size (11 octal digits + null/space)
+        // Directories must have size 0 in tar
+        if (S_ISDIR(st.st_mode)) {
+            sprintf(header.size, "%011o", 0);
+            header.typeflag[0] = '5'; // Directory
+        } else {
+            sprintf(header.size, "%011o", (unsigned int)st.st_size);
+            header.typeflag[0] = '0'; // Normal file
+        }
+    
+        concantenate(buff, header.typeflag);
+
+        // 6. Fill Modification Time
+        sprintf(header.mtime, "%011o", (unsigned int)st.st_mtime);
+        concantenate(buff, header.mtime);
+        concantenate(buff, "\n");
+
     }
-    void addtoTar(const std::string & path)
+    void writeData(const std::string & path)
+    {
+        std::cout << path << std::endl;
+        std::ifstream f(path, std::ios::in);
+        std::string input;
+        
+        while (std::getline(f, input))
+        {
+            concantenate(buff, input);
+            concantenate(buff, "\n");
+        }
+    }
+    void addtoTar(const char * path)
     {
         if (fs::is_regular_file(path))
         {
             writeHeader(path);
             writeData(path);
-            writePadding();
+            //writePadding();
         }
         else
         {
-            writeHeader(path + "/");
+            writeHeader(path);
             
             for (const auto& entry : fs::directory_iterator(path))
             {
-                addtoTar(entry.status());
+                std::string s = entry.path().filename().string();
+                addtoTar(s.c_str());
             }
         }
     }
+    std::string buff;
 };
 
 #endif
