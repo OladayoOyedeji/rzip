@@ -1,0 +1,15 @@
+float freq[alphabet_size] = {a, b, c, d, e};
+float prefix_freq[alphabet_size] = prefix(freq);
+
+
+initial_top = 0;
+initial_range = 1;
+
+
+
+def encode_letter(letter, top, range):
+    // []
+    top *= prefix_freq[letter];
+    range = 
+
+def encode_word(word, initial_top, initial_range): 

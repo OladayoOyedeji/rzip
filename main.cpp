@@ -1,8 +1,11 @@
 #include <iostream>
 #include <vector>
 #include <bitset>
-#include "File.h"
-#include "TapeArchiver.h"
+#include <map>
+#include <limits>
+#include <cstring>
+// #include "File.h"
+// #include "TapeArchiver.h"
 
 using namespace std;
 
@@ -26,7 +29,7 @@ std::ostream & operator<<(std::ostream & cout, const vector<int> &v)
     return cout;
 }
 
-void print_buffer(unsigned char * buff, int size)
+void print_buffer(char * buff, int size)
 {
     for (int i = 0; i < size; ++i)
     {
@@ -40,7 +43,7 @@ void print_buffer(unsigned char * buff, int size)
     }
 }
 
-void buffer_to_bin_seq(unsigned char * buff, int size)
+void buffer_to_bin_seq(char * buff, int size)
 {
     vector<int> x(size/4, 0);
 
@@ -66,78 +69,75 @@ void buffer_to_bin_seq(unsigned char * buff, int size)
     cout << x << endl;
 }
 
-std::vector< freq_sym_pair > get_freq(const std::string & buff)
+void bst(uint8_t * data, uint8_t * left, uint8_t * right)
 {
-    std::map< char, float > ht;
+    while (i < n)
+    {
+        int len;
+        if (match(string[i:i+window_size], tree, len))
+        {
+            replace_with_distance(dist, len);
+            i += (len - 1); // The loop ++i will handle the last 1
+        
+        }
+        else
+        {
+            add_to_tree(tree, string[i:i+window_size]);
+            i++;
+        }
+    }
+}
+
+// std::vector< freq_sym_pair > get_freq(const std::string & buff)
+// {
+//     std::map< char, float > ht;
     
-    for (int i = 0; i < buff.size(); ++i)
-    {
-        ht[buff[i]]++;
-    }
+//     for (int i = 0; i < buff.size(); ++i)
+//     {
+//         ht[buff[i]]++;
+//     }
 
-    std::vector< freq_sym_pair > xs;
-    for (auto p: ht)
-    {
-        xs.push_back(freq_sym_pair(p.second, p.first));
-    }
+//     std::vector< freq_sym_pair > xs;
+//     for (auto p: ht)
+//     {
+//         xs.push_back(freq_sym_pair(p.second, p.first));
+//     }
 
-    return xs;
-}
+//     return xs;
+// }
 
-void build_huffman_tree(std::vector< freq_sym_pair > & xs)
-{
-    auto h = build_head(xs);
-    int n = xs.size();
+// void build_huffman_tree(std::vector< freq_sym_pair > & xs)
+// {
+//     auto h = build_head(xs);
+//     int n = xs.size();
 
-    for (int i = 0; i < n; ++i)
-    {
-        freq_sym_pair a = h.root();
-        h.extract_root();
-        freq_sym_pair b = h.root();
-        h.extract_root();
-        // binary tree t -
-        //     root = (frequency=a.frequency +  b.frequency, -)
-        Binary_node t(a.first + b.first, '-', a, b);
-        h.insert(t);
-    }
+//     for (int i = 0; i < n; ++i)
+//     {
+//         freq_sym_pair a = h.root();
+//         h.extract_root();
+//         freq_sym_pair b = h.root();
+//         h.extract_root();
+//         // binary tree t -
+//         //     root = (frequency=a.frequency +  b.frequency, -)
+//         Binary_node t(a.first + b.first, '-', a, b);
+//         h.insert(t);
+//     }
 
-    return h.root();
-}
+//     return h.root();
+// }
 
 int main()
 {
-    // file: xyz
-    // std::string name;
-    // std::cin >> name;
-    // cout << name << endl;
+    char s[1024];
+    cin.getline(s, 1024);
+    cout << strlen(s) << endl;
+    buffer_to_bin_seq(s, strlen(s));
+    // Tar t;
+    // t.addtoTar("xyz");
 
-    // File f(name);
-
-    // unsigned char buff[2024];
-    // ssize_t s = 1024;
-    // // try
-    // // {
-    //     ssize_t size = f.myread(buff, s);
-    //     cout << buff << endl;
+    // std::vector< freq_sym_pair > xs = get_freq(buff);
     
-    //     f.myclose();
-    //     buffer_to_bin_seq(buff, size);
-    // }
-    // catch (ReadError & e)
-    // {
-    //     cout << "what happened nihhh";
-    // }
-    // for (int i = 0; i < 8; ++i)
-    // {
-    //     buff[i] = 128 + i;
-    // }
-    
-    Tar t;
-    t.addtoTar("xyz");
-
-    std::vector< freq_sym_pair > xs = get_freq(buff);
-    
-    cout << t.buff << endl;
+    // cout << t.buff << endl;
     
     // print_buffer(buff, 8);
     
