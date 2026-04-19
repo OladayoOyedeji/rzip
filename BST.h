@@ -13,6 +13,20 @@ class BST_Node
     BST_Node * right_;
 };
 
+struct Token
+{
+    bool is_match;
+    union
+    {
+        uint8_t literal;
+        struct match
+        {
+            uint32_t dist;
+            uint32_t len;
+        };
+    }
+};
+
 void search(BST_Node * n, int pos, string & buff)
 {
     if (buff[n->val] != buff[pos])
@@ -96,6 +110,42 @@ int lzz77(std::string & buff)
         }
     }
     
+}
+
+void lzma()
+{
+    for (const auto & t : token_list)
+    {
+        if (!t.is_match)
+        {
+            EncodeBit(prob_is_match, 0);
+            EncodeLiteral(t.literal);
+        }
+        else
+        {
+            EncodeBit(prob_is_match, 1);
+            EncodeMatch(t.match.len, t.match.dist);
+        }
+    }
+}
+
+uint32_t get_literal_context(uint8_t prev_byte, int lc)
+{
+    return prev_byte >> (8 - lc);
+}
+
+void EncodeLiteral(uint16_t * probs, uint8_t symbol, Encoder encoder)
+{
+    uint32_t tree_idx = 1;
+
+    for (int i = 7; i >= 0; --i)
+    {
+        int bit = (symbol >> i) & 1;
+
+        encoder.EncodeBit(probs[tree_idx], bit);
+
+        tree_idx = (tree_idx << 1) | bit;
+    }
 }
 
 struct Data
