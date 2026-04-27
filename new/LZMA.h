@@ -6,6 +6,7 @@
 #include <cstddef>
 #include <cstring>
 #include <string>
+#include "File.h"
 
 using namespace std;
 
@@ -74,13 +75,14 @@ private:
 class LzmaEnc
 {
 public:
-    LzmaEnc(uint8_t*, size_t);
+    LzmaEnc(const char * name, uint8_t*, size_t);
     bool Encode();
     void EncodeLiteral(uint32_t);
     int  FindMatch(uint32_t, uint32_t&);
     void EncodeDistance(uint32_t, uint32_t);
 
 private:
+    std::string name_;
     uint8_t*     src_;
     size_t       srcSize_;
     RangeEncoder rc_;

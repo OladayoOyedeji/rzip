@@ -32,7 +32,7 @@ void RangeEncoder::ShiftLow()
 
         // emit the held cache byte with carry
         WriteByte(cache_ + carry);
-        cacheSize_--;
+        // cacheSize_--;
 
         while (cacheSize_ != 0)
         {
@@ -94,12 +94,15 @@ void LenEnc::Encode(RangeEncoder & rc, uint32_t posState, uint32_t len)
     }
 }
 
-LzmaEnc::LzmaEnc(uint8_t* in, size_t inSize)
-    : lc_(3), lp_(0), pb_(2),
+LzmaEnc::LzmaEnc(const char * name, uint8_t* in, size_t inSize)
+    : name_(name), lc_(3), lp_(0), pb_(2),
       src_(new uint8_t[inSize]),
       srcSize_(inSize),
       state_(0), rc_(inSize)
 {
+    name_ += '.';
+    name_ += 'r';
+    name_ += 'z';
     // match finder
     memset(hashTable_, 0xFF, sizeof(hashTable_));
     memset(chain_,     0xFF, sizeof(chain_));
@@ -234,7 +237,10 @@ bool LzmaEnc::Encode()
     Pair p;
     p.first = rc_.buf_;
     p.second = rc_.bufPos_;
-    std::cout << "hello[" << p << ']' << std::endl;
+    File f(name_);
+    f.mywrite(rc_.buf_, rc_.bufPos_);
+    f.myclose();
+    std::cout << "[" << p << ']' << rc_.bufPos_ << std::endl;
     return true;
 }
 
