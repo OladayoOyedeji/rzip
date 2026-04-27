@@ -1,0 +1,14 @@
+\contentsline {section}{\numberline {1}Introduction and Background}{2}{section.1}%
+\contentsline {subsection}{\numberline {1.1}Context Probability Model}{2}{subsection.1.1}%
+\contentsline {subsection}{\numberline {1.2}Range Encoding}{3}{subsection.1.2}%
+\contentsline {section}{\numberline {2}Math and Algorithm Concept}{3}{section.2}%
+\contentsline {subsection}{\numberline {2.1}Optimal Entropy}{3}{subsection.2.1}%
+\contentsline {subsection}{\numberline {2.2}Conditional Probability (Markov Chain)}{4}{subsection.2.2}%
+\contentsline {subsection}{\numberline {2.3}Recursive Interval Subdivision}{5}{subsection.2.3}%
+\contentsline {subsection}{\numberline {2.4}Adaptive Update}{5}{subsection.2.4}%
+\contentsline {subsection}{\numberline {2.5}Proof}{6}{subsection.2.5}%
+\contentsline {section}{\numberline {3}Implementation}{6}{section.3}%
+\contentsline {subsection}{\numberline {3.1}LzmaEncode}{6}{subsection.3.1}%
+\contentsline {subsection}{\numberline {3.2}Encode Literal}{7}{subsection.3.2}%
+\contentsline {subsection}{\numberline {3.3}Range Encode Bit}{8}{subsection.3.3}%
+\providecommand \tocbasic@end@toc@file {}\tocbasic@end@toc@file 

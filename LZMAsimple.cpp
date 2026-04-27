@@ -1,3 +1,36 @@
+LzmaEncSimple::LzmaEncSimple(uint8_t* in, size_t inSize, uint8_t* out, size_t outSize)
+    : src(in),
+      srcSize(inSize),
+      pos(0),
+      state(0),
+      processedSize(0)
+{
+    // 1. properties
+    lc     = 3;
+    lp     = 0;
+    pb     = 2;
+    pbMask = (1 << pb) - 1;  // = 0b11 = 3
+
+    // 2. rep history — LZMA initialises all four distances to 1
+    reps[0] = 1;
+    reps[1] = 1;
+    reps[2] = 1;
+    reps[3] = 1;
+
+    // 3. probability tables
+    // must allocate litProbs BEFORE calling ResetProbs
+    uint32_t numLitProbs = 0x300 << (lc + lp);  // 0x300 * 8 = 6144
+    litProbs = new uint16_t[numLitProbs];
+    ResetProbs();
+
+    // 4. match finder
+    memset(hashTable, 0xFF, sizeof(hashTable));  // all slots = 0xFFFFFFFF
+    memset(chain,     0xFF, sizeof(chain));
+
+    // 5. range encoder
+    rc.Init(out, outSize);
+}
+
 void LzmaEncSimple::BitTreeEncode(LzmaProb* tree, int bits, uint32_t sym)
 {
     uint32_t m = 1;
@@ -12,7 +45,7 @@ void LzmaEncSimple::EncodeLiteral(uint32_t pos, uint8_t byte)
 {
     uint8_t prev = pos > 0 ? src[pos - 1] : 0;
     uint32_t litState = (prev >> (8 - lc));  // lp=0 so no position term
-    LzmaProb* probs = litProbs + 0x300 * litState;
+    LzmaProb* probs = litProbs + 0x100 * litState;
     BitTreeEncode(probs, 8, byte);
 }
 
@@ -74,6 +107,49 @@ void LzmaEncSimple::EncodeDistance(uint32_t dist, uint32_t len)
         }
         // always encode low 4 bits through align tree
         BitTreeEncode(distAlign, 4, extra & 0xF);
+    }
+}
+
+void RangeEncoder::ShiftLow()
+{
+    if ((uint32_t)low < 0xFF000000 || (low >> 32) != 0)
+    {
+        // emit the cached byte, propagating carry if needed
+        uint8_t temp = cache;
+        do {
+             WriteByte(temp + (uint8_t)(low >> 32));
+            temp = 0xFF;
+            cacheSize--;
+        } while (cacheSize != 0);
+
+        cache = (uint8_t)((uint32_t)low >> 24);
+    }
+    else
+    {
+        // carry might still come — hold this byte
+        cacheSize++;
+    }
+
+    low = (uint32_t)(low << 8);  // shift out the top byte
+}
+
+void RangeEncoder::EncodeBit(uint16_t& prob, int bit)
+{
+    uint32_t bound = (range >> 11) * prob;
+
+    if (bit == 0) {
+        range  = bound;
+        prob  += (2048 - prob) >> 5;   // nudge toward 0
+    } else {
+        low   += bound;
+        range -= bound;
+        prob  -= prob >> 5;            // nudge toward 1
+    }
+
+    // normalize — keep range above 2^24
+    if (range < (1 << 24)) {
+        range <<= 8;
+        ShiftLow();
     }
 }
 

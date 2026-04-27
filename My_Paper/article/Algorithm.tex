@@ -1,0 +1,82 @@
+\section{Math and Algorithm Concept}
+LZMA and many modern compression algorithms are influenced by the concept of Shannon entropy, which represents the theoretical lower bound on the average number of bits required to encode data based on symbol probabilities.
+
+\subsection{Optimal Entropy}
+The entropy of a discrete random variable $X$ is defined as:
+\[
+H(X) = - \sum_{i=1}^{n}{P(x_i)\lg_2P(x_i)}
+\]
+This value represents the minimum expected number of bits required per symbol for optimal encoding.
+
+In a simple compression system where each bit has equal probability,
+
+$P(x_i)=0.5$
+
+then:
+
+H(X)=1 bit per symbol
+
+meaning no compression is possible because the data is already maximally unpredictable.
+
+However, when symbols occur with unequal probabilities, entropy becomes less than 1 bit per symbol on average, allowing compression algorithms such as LZMA to encode more frequent symbols using fewer bits through entropy coding techniques like range encoding.
+
+\subsection{Conditional Probability (Markov Chain)}
+
+LZMA makes use of conditional probability to predict future symbols based on previously encoded data. This can be written as
+
+\[
+P(X \mid S)
+\]
+
+where $X$ represents the next symbol and $S$ represents the current encoder state determined by recent encoding history.
+
+One component of this context modeling uses the high-order bits of the previously encoded literal byte. For example, when three bits of the previous literal are used, this produces
+
+\[
+2^3 = 8
+\]
+
+possible literal contexts. These contexts form an 8-state model that improves prediction accuracy when encoding literal bytes.
+
+In addition to literal contexts, LZMA maintains a 12-state finite-state model that tracks whether recent outputs were literals, matches, or repeated matches. These states influence the probability of whether the next encoded symbol will be a literal or a match.
+
+For example:
+
+state 0--6: recent history dominated by literals
+
+state 7--11: recent history dominated by matches
+
+By conditioning symbol probabilities on recent encoding history, LZMA adapts dynamically to the structure of the input data and improves compression efficiency.
+
+\subsection{Recursive Interval Subdivision}
+
+During range encoding, the current interval is subdivided according to the predicted probability of the next bit. Let
+
+\[
+\text{bound} = \left\lfloor \frac{R_{old}}{2048} \right\rfloor \times P
+\]
+
+Then the interval update rule becomes
+
+\[
+(L_{new}, R_{new}) =
+\begin{cases}
+(L_{old},\; \text{bound}) & \text{if bit = 0} \\[6pt]
+(L_{old} + \text{bound},\; R_{old} - \text{bound}) & \text{if bit = 1}
+\end{cases}
+\]
+
+where $L$ represents the lower bound of the interval and $R$ represents the size of the current interval. This recursive subdivision progressively narrows the interval so that it uniquely represents the encoded bit sequence.
+
+\subsection{Adaptive Update}
+The probability model in LZMA is updated adaptively using an exponentially weighted moving average (EWMA). The update rule is
+
+\[
+P_{t+1} = P_t + \alpha (B_t - P_t)
+\]
+
+where $P_t$ represents the current probability estimate, $B_t$ is the observed bit value, and $\alpha$ is the learning rate. This update gradually shifts the probability estimate toward recently observed values while retaining information from previous observations.
+
+In practice, LZMA implements this update using fixed-point integer arithmetic, allowing efficient real-time probability adaptation during range encoding. This adaptive mechanism enables the encoder to respond quickly to changing symbol statistics and improves compression efficiency.
+
+\subsection{Proof}

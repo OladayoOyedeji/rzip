@@ -7,7 +7,8 @@ int main(int argc, char* argv[])
 
     // --- Read input ---
     FILE* fin = fopen(argv[1], "rb");
-    if (!fin) {
+    if (!fin)
+    {
         printf("Cannot open input: %s\n", argv[1]);
         return 1;
     }

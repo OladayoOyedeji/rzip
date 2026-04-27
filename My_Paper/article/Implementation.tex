@@ -1,0 +1,111 @@
+\section{Implementation}
+
+My implementation is written in C++.
+
+In LZMA, probabilities are represented using 11-bit unsigned integers in the range
+
+\[
+0 < \text{prob} < 2048
+\]
+
+where the value \texttt{prob} represents the estimated probability that the next bit is 0:
+
+\[
+P(\text{bit}=0) \approx \frac{\text{prob}}{2048}
+\]
+
+and therefore
+
+\[
+P(\text{bit}=1) = 1 - P(\text{bit}=0).
+\]
+
+Values close to 2048 indicate a high likelihood of a 0 bit, while values close to 0 indicate a high likelihood of a 1 bit. This fixed-point probability representation allows efficient implementation of adaptive probability updates using integer arithmetic during range encoding.
+
+\subsection{LzmaEncode}
+
+\begin{Verbatim}[frame=single,fontsize=\footnotesize]
+Encode()
+    pos = 0
+    
+    while (pos < size)
+        dist, len = get_match(pos)
+
+        if (len < 2)
+            litNext[12] = {0,0,0,0,1,2,3,4,5,6,4,5}
+
+            range_encode_bit(ismatch[state][posState], 0)
+            encode_literal(pos)
+
+            state = litNext[state]
+            pos++
+
+        else
+            range_encode_bit(ismatch[state][posState], 1)
+
+            encode_length(posState, len)
+            encode_distance(dist - 1, len)
+
+            state = (state < 7) ? 7 : 10
+            pos += len
+
+    range_flush()
+\end{Verbatim}
+
+The encoder determines whether the next symbol is encoded as a literal or a match using the probability model \texttt{ismatch[state][posState]}. The state variable tracks recent encoding history and influences future probability predictions.
+
+\subsection{Encode Literal}
+
+\begin{Verbatim}[frame=single,fontsize=\footnotesize]
+encode_literal(byte)
+    litState = prev >> (8 - lc)
+    probs = litProbs + 768 * litState
+
+    node = 1
+
+    for i = 7 downto 0
+        bit = (byte >> i) & 1
+        range_encode_bit(probs[node], bit)
+        node = (node << 1) | bit
+\end{Verbatim}
+
+The literal context is determined using the upper bits of the previously encoded byte. This context selects one section of the literal probability array.
+
+Each literal context contains 256 probability values organized as three binary trees of depth 8. A binary tree of depth 8 requires
+
+\[
+2^0 + 2^1 + \dots + 2^7 = 255
+\]
+
+probability nodes to encode all possible decision paths for an 8-bit symbol.
+my Implementation just uses 256 prob sections but the real
+LZMA implementation uses three such trees per context:
+
+\begin{itemize}
+\item one tree for normal literal encoding
+\item two additional trees for matched literal encoding
+\end{itemize}
+
+Matched literal encoding is used when the encoder predicts the literal based on a previously matched byte from the dictionary. The encoder then conditions probability selection on whether the predicted match bit agrees with the literal bit. This improves compression performance by incorporating additional contextual information during encoding.
+
+\subsection{Range Encode Bit}
+
+\begin{Verbatim}[frame=single,fontsize=\footnotesize]
+range_encode_bit(prob, bit)
+    bound = (range >> 11) * prob
+
+    if bit
+        low += bound
+        range -= bound
+        prob -= prob >> 5
+    else
+        range = bound
+        prob += (2048 - prob) >> 5
+
+    if range < (1 << 24)
+        range <<= 8
+        shiftlow()
+\end{Verbatim}
+
+Each encoded bit subdivides the current interval according to the estimated probability value. The interval is then renormalized whenever its size falls below $2^{24}$ to maintain sufficient precision during encoding. The probability value is updated adaptively using a fixed-point exponential moving average after each encoded bit.
+

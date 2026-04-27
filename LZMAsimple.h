@@ -51,3 +51,98 @@ private:
     void     EncodeDistance(uint32_t dist, uint32_t len);
     void     BitTreeEncode (LzmaProb* tree, int bits, uint32_t sym);
 };
+
+class RangeEncoder
+{
+public:
+    RangeEncoder()
+        : buf(nullptr), bufSize(0), bufPos(0),
+          low(0), range(0xFFFFFFFF), cacheSize(1), cache(0)
+    {}
+
+    void Init(uint8_t* outBuf, size_t outSize)
+    {
+        buf     = outBuf;
+        bufSize = outSize;
+        bufPos  = 0;
+        low      = 0;
+        range    = 0xFFFFFFFF;
+        cacheSize = 1;
+        cache    = 0;
+    }
+
+    void EncodeBit(uint16_t& prob, int bit)
+    {
+        uint32_t bound = (range >> 11) * prob;
+
+        if (bit == 0) {
+            range  = bound;
+            prob  += (2048 - prob) >> 5;
+        } else {
+            low   += bound;
+            range -= bound;
+            prob  -= prob >> 5;
+        }
+
+        if (range < (1 << 24)) {
+            range <<= 8;
+            ShiftLow();
+        }
+    }
+
+    void EncodeDirectBits(uint32_t value, int numBits)
+    {
+        for (int i = numBits - 1; i >= 0; i--) {
+            range >>= 1;
+            low   += range & (0 - ((value >> i) & 1));
+            if (range < (1 << 24)) {
+                range <<= 8;
+                ShiftLow();
+            }
+        }
+    }
+
+    void Flush()
+    {
+        for (int i = 0; i < 5; i++)
+            ShiftLow();
+    }
+
+    size_t GetOutputSize() { return bufPos; }
+
+private:
+    uint8_t*  buf;
+    size_t    bufSize;
+    size_t    bufPos;
+
+    uint64_t  low;        // 64-bit to safely absorb carries
+    uint32_t  range;
+    uint32_t  cacheSize;  // how many 0xFF bytes are pending
+    uint8_t   cache;      // last byte waiting to be emitted
+
+    void WriteByte(uint8_t byte)
+    {
+        buf[bufPos++] = byte;
+    }
+
+    void ShiftLow()
+    {
+        if ((uint32_t)low < 0xFF000000 || (low >> 32) != 0)
+        {
+            uint8_t temp = cache;
+            do {
+                WriteByte(temp + (uint8_t)(low >> 32));
+                temp = 0xFF;
+                cacheSize--;
+            } while (cacheSize != 0);
+
+            cache = (uint8_t)((uint32_t)low >> 24);
+        }
+        else
+        {
+            cacheSize++;
+        }
+
+        low = (uint32_t)(low << 8);
+    }
+};

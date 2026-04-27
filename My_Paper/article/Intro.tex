@@ -1,0 +1,37 @@
+\section{Introduction and Background}
+LZMA (Lempel-Ziv-Markov chain Algorithm) was developed by Igor Pavlov around 1998 as part of the 7-Zip compression system. It improves on earlier LZ based methods like LZ77(developed by Abraham Lempel and Jacop Ziv), which compress data by replacing repeated byte sequences with refrences to earlier occurences.
+
+LZMA still utilizes Lempel-Ziv idea of dictionary-based compression, but it adds a much powerful statistical model. Instead of only finding repeated substring, it predicts the probability of the next byte based on context, meaning the sequence of previous bytes, This is the "Markov chain" part of the name: the assumption that the next symbol depends on recent history.
+
+Unlike LZ77 alone, LZMA combines this context modeling with range encoding (a form of entropy coding similar to arithmetic coding), where more probable symbols are encoded with fewer btis and less probable symbols use more bits.
+
+This step is based on LZ77-style matching, where the input stream is represented using two types of symbols: literals and matches.
+
+\textbf{Literals} are single bytes that have no sufficiently long match in the previous data window. They are stored directly when no useful repetition is found.
+
+\textbf{Match sequences} represent repeated byte patterns found earlier in the data. A match is encoded using:
+\begin{itemize}
+  \item The \textit{length} of the repeated sequence
+  \item The \textit{distance} (how far back in the data the match occurs)
+\end{itemize}
+
+Matches are typically only used when the repeated sequence is longer than a small threshold (often 2 or more bytes), since shorter matches are not efficient to encode.
+
+\subsection{Context Probability Model}
+
+This step uses a Markov-style context model to estimate the probability of the next symbol based on previous symbols.
+
+Instead of treating all bytes equally, the model conditions predictions on the recent history (context). For example, after seeing a phrase like:
+
+\begin{verbatim}
+"The capital of France is "
+\end{verbatim}
+
+the model assigns a higher probability to words such as "Paris" because similar contexts have appeared in training data or prior observations.
+
+The context used depends on whether the current symbol is a literal or part of a match. Over time, the model adapts its probability estimates based on observed frequencies, improving prediction accuracy during compression.
+\subsection{Range Encoding}
+
+The final step converts predicted probabilities into a compact bitstream using range encoding (a form of entropy coding similar to arithmetic coding).
+
+Symbols with higher predicted probability are encoded using fewer bits, while less likely symbols require more bits. This allows the compressor to achieve high efficiency by aligning bit usage with statistical likelihoods.
