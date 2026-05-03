@@ -1,4 +1,4 @@
-#include "LZMA.h"
+#include "LZMAenc.h"
 
 std::ostream & operator<<(std::ostream & cout, const Pair & p)
 {
@@ -18,7 +18,7 @@ void BitTreeEncode(RangeEncoder & rc, LzmaProb * tree, int bits, uint32_t sym)
     for (int i = bits - 1; i >= 0; i--)
     {
         uint32_t bit = (sym >> i) & 1;
-        cout << tree[m] << ' ' << bit << endl;
+        // cout << "Bit: " << bit << endl;
         rc.EncodeBit(tree[m], bit);
         m = (m << 1) | bit;
     }
@@ -30,17 +30,17 @@ void RangeEncoder::ShiftLow()
     {
         uint8_t carry = (uint8_t)(low_ >> 32);
 
-        // emit the held cache byte with carry
-        WriteByte(cache_ + carry);
-        // cacheSize_--;
+        uint8_t temp = cache_;
 
-        while (cacheSize_ != 0)
+        do
         {
-            WriteByte(0xFF + carry);
-            cacheSize_--;
+            WriteByte(temp + carry);
+            temp = 0xFF;
         }
-        
+        while (--cacheSize_ != 0);
+
         cache_ = (uint8_t)((uint32_t)low_ >> 24);
+        cacheSize_ = 1;
     }
     else
     {
@@ -69,7 +69,6 @@ void RangeEncoder::Flush()
     std::cout << "Flush\n";
     for (int i = 0; i < 5; i++)
     {
-        std::cout << i << std::endl;
         ShiftLow();
     }
 }
@@ -78,31 +77,31 @@ void LenEnc::Encode(RangeEncoder & rc, uint32_t posState, uint32_t len)
 {
     len -= 2;
 
-    if (len < 8) {
+    if (len < 8)
+    {
         rc.EncodeBit(choice_, 0);
         BitTreeEncode(rc, low_[posState], 3, len);
     }
-    else if (len < 16) {
+    else if (len < 16)
+    {
         rc.EncodeBit(choice_,  1);
         rc.EncodeBit(choice2_, 0);
         BitTreeEncode(rc, mid_[posState], 3, len - 8);
     }
-    else {
+    else
+    {
         rc.EncodeBit(choice_,  1);
         rc.EncodeBit(choice2_, 1);
         BitTreeEncode(rc, high_, 8, len - 16);
     }
 }
 
-LzmaEnc::LzmaEnc(const char * name, uint8_t* in, size_t inSize)
-    : name_(name), lc_(3), lp_(0), pb_(2),
+LzmaEnc::LzmaEnc(uint8_t* in, size_t inSize)
+    : lc_(3), lp_(0), pb_(2),
       src_(new uint8_t[inSize]),
       srcSize_(inSize),
       state_(0), rc_(inSize)
 {
-    name_ += '.';
-    name_ += 'r';
-    name_ += 'z';
     // match finder
     memset(hashTable_, 0xFF, sizeof(hashTable_));
     memset(chain_,     0xFF, sizeof(chain_));
@@ -171,7 +170,7 @@ void LzmaEnc::EncodeDistance(uint32_t dist, uint32_t len)
         uint32_t base = (2 | (slot & 1)) << directBits;
         uint32_t extra = dist - base;
 
-        if (slot < 14)
+        if (directBits > 4)
         {
             // Encode Direct Bits
             rc_.EncodeDirectBits(extra >> 4, directBits-4);
@@ -189,7 +188,7 @@ void LzmaEnc::EncodeLiteral(uint32_t pos)
     uint32_t litState = (prev >> (8 - lc_));
     
     LzmaProb * probs = litProb_ + 0x300 * litState;
-    cout << "here?\n";
+    
     BitTreeEncode(rc_, probs, 8, byte);
 }
 
@@ -199,6 +198,7 @@ bool LzmaEnc::Encode()
     static const uint32_t transNext[12] = {0,0,0,0,1,2,3,4,5,6,4,5};
     state_ = 0;
     int pos = 0;
+    
     while (pos < srcSize_-1)
     {
         uint32_t posState = pos & ((1 << pb_) - 1);
@@ -206,11 +206,11 @@ bool LzmaEnc::Encode()
         len = FindMatch(pos, dist);
         if (len < 2)
         {
-            std::cout << state_ << ' ' << posState << std::endl;
             rc_.EncodeBit(isMatch_[state_][posState], 0);
+            cout << "encode literal" << endl;
             EncodeLiteral(pos);
-            cout << "literal: " << (int)src_[pos] << endl;
-
+            cout << "literal: " << src_[pos] << endl;
+            
             state_ = transNext[state_];
             pos++;
         }
@@ -234,20 +234,24 @@ bool LzmaEnc::Encode()
         }
     }
     rc_.Flush();
-    Pair p;
-    p.first = rc_.buf_;
-    p.second = rc_.bufPos_;
-    File f(name_);
-    f.mywrite(rc_.buf_, rc_.bufPos_);
-    f.myclose();
-    std::cout << "[" << p << ']' << rc_.bufPos_ << std::endl;
+    // Pair p;
+    // p.first = rc_.buf_;
+    // p.second = rc_.bufPos_;
+    // File f(name_);
+    // f.mywrite(rc_.buf_, rc_.bufPos_);
+    // f.myclose();
+    // std::cout << "[" << p << ']' << rc_.bufPos_ << std::endl;
     return true;
 }
 
+static int callCount = 0;
 void RangeEncoder::EncodeBit(uint16_t & prob, int bit)
 {
+    // callCount++;
+    // cout << "ENC call#" << callCount << " range_=" << range_ 
+    //      << " prob=" << prob << " bit=" << bit << endl;
     uint32_t bound = (range_ >> 11) * prob;
-
+    
     if (bit == 0)
     {
         range_ = bound;
@@ -263,7 +267,6 @@ void RangeEncoder::EncodeBit(uint16_t & prob, int bit)
     if (range_ < (1 << 24))
     {
         range_ <<= 8;
-        cout << "encode bit " << low_ << ' ' << range_ << endl;
         ShiftLow();
     }
 }

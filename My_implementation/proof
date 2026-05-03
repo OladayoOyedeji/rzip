@@ -1,0 +1,114 @@
+theorem                     what it proves              how to verify
+──────────────────────────────────────────────────────────────────────
+lossless correctness        decode(encode(X)) = X       memcmp == 0
+range coder intervals      output represents interval  unit test RC
+EWMA convergence            probs adapt to true freq    print probs
+compression optimality      output size bounded by H(X) measure ratio
+match finder correctness    finds valid matches          trace FindMatch
+
+lossless correctness thorem
+range coder intervals theorem
+EWMA probability convergence theorem
+compression optimality bound theorem
+match finder correctness theorem
+a. the range coder is symmetric
+   every EncodeBit(prob, bit) has exactly one matching
+   DecodeBit(prob) that returns the same bit
+
+b. the probability tables are updated identically
+   encoder updates prob after every EncodeBit
+   decoder updates prob after every DecodeBit
+   same update formula, same order, same entries
+
+c. the token sequence is preserved
+   every literal and match encoded produces
+   exactly the bits needed to reconstruct it
+
+a. range never reaches 0
+   bound = (range >> 11) * prob
+   prob is always in [1, 2047]
+   range >= (1<<24) after normalization
+   therefore bound >= (range>>11) * 1 > 0
+   therefore range never collapses to 0
+
+b. low never overflows past the interval
+   low + range <= 0xFFFFFFFF always holds
+   ShiftLow correctly handles carries
+   output bytes are committed only when stable
+
+c. normalization preserves the interval
+   range <<= 8 and ShiftLow are equivalent to
+   multiplying both low and range by 256
+   the relative position inside the interval is unchanged
+
+after seeing n zeros and m ones the probability satisfies:
+
+prob_n ≈ 2048 * (32/(32+1))^m * product_of_zero_updates
+
+more simply — the effective window is ~32 samples
+prob converges to true_freq within O(32) samples
+
+formally:
+  if P(bit=0) = p in the data
+  then E[prob] → 2048 * p  as n → infinity
+
+prove: E[prob | bit=0] = prob + (2048-prob)/32
+       E[prob | bit=1] = prob - prob/32
+       fixed point when E[prob] = 2048*p:
+         p*(2048 - 2048*p)/32 = (1-p)*(2048*p)/32
+         2048*p*(1-p)/32 = 2048*p*(1-p)/32  ✓
+
+
+
+a. range coder achieves near-Shannon entropy
+   each bit costs log2(1/p) bits where p is the
+   current probability estimate
+   total cost = sum of log2(1/p_i) for all bits
+
+b. greedy match finder suboptimality
+   greedy selection is at most O(log N) bits
+   worse than optimal parsing
+   proof: each greedy decision can be at most
+   one match length shorter than optimal
+   optimal parser would use price model to find
+   globally optimal token sequence
+
+c. probability model overhead
+   initial 1024 probabilities cost exactly 1 bit per decision
+   overhead = O(32) bits per probability entry to converge
+   total overhead = O(K * 32) where K = number of prob entries
+   K = 6144 + 192 + 12 + 256 + 16 + 514 ≈ 7034 entries
+   overhead ≈ 225088 bits ≈ 27 KB regardless of input size
+
+
+
+a. chain integrity
+   every position inserted maintains the invariant:
+   chain[pos % dictSize] points to the previous position
+   with the same 2-byte hash, or 0xFFFFFFFF if none
+
+   proof by induction:
+   base: all entries 0xFFFFFFFF initially
+   step: each FindMatch call sets:
+     hashTable[h] = pos
+     chain[pos % dictSize] = old_head
+   this correctly prepends pos to the chain for hash h
+
+b. completeness up to depth
+   all candidates within depth=32 steps of the chain
+   are checked — no valid match is skipped within
+   the search window
+
+c. distance bound
+   dist = pos - cur
+   if dist > dictSize → break
+   proves no match outside the dictionary window
+   is ever returned
+
+d. length correctness
+   the byte comparison loop is exact:
+   while len < maxLen && src[pos+len] == src[cur+len]
+   returns exactly the longest common prefix
+   between src[pos..] and src[cur..]
+
+

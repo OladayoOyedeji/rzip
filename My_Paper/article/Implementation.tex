@@ -97,10 +97,10 @@ range_encode_bit(prob, bit)
     if bit
         low += bound
         range -= bound
-        prob -= prob >> 5
+        prob = prob - (0 - prob) * 2^{-5}
     else
         range = bound
-        prob += (2048 - prob) >> 5
+        prob = prob + (2048 - prob) * 2^{-5}
 
     if range < (1 << 24)
         range <<= 8

@@ -1,5 +1,5 @@
-#ifndef LZMA_H
-#define LZMA_H
+#ifndef LZMAENC_H
+#define LZMAENC_H
 
 #include <iostream>
 #include <cstdint>
@@ -25,7 +25,9 @@ public:
           bufPos_(0),
           low_(0), range_(0xFFFFFFFF),
           cacheSize_(1), cache_(0)
-    {}
+    {
+        // cout << cacheSize_ << endl;
+    }
     void EncodeBit(uint16_t & prob, int bit);
     void Flush();
     void ShiftLow();
@@ -46,7 +48,7 @@ public:
     uint64_t low_;
     
     uint32_t range_;
-    uint32_t cacheSize_;
+    int32_t cacheSize_;
     uint8_t cache_;
 };
 
@@ -64,7 +66,7 @@ public:
             high_[i] = 1024;
     }
     void Encode(RangeEncoder & rc, uint32_t posState, uint32_t len);
-private:
+//private:
     LzmaProb choice_;
     LzmaProb choice2_;
     LzmaProb low_[1 << 4][8];
@@ -75,28 +77,28 @@ private:
 class LzmaEnc
 {
 public:
-    LzmaEnc(const char * name, uint8_t*, size_t);
+    LzmaEnc(uint8_t*, size_t);
     bool Encode();
     void EncodeLiteral(uint32_t);
     int  FindMatch(uint32_t, uint32_t&);
     void EncodeDistance(uint32_t, uint32_t);
 
-private:
+//private:
     std::string name_;
-    uint8_t*     src_;
-    size_t       srcSize_;
+    uint8_t * src_;
+    size_t srcSize_;
     RangeEncoder rc_;
-    uint32_t     lc_ = 3, lp_ = 0, pb_ = 2;
-    uint32_t     state_;
-    LzmaProb     isMatch_[12][16];
-    LzmaProb     isRep_[12];
-    LzmaProb     litProb_[0x300 * (1 << 3)];
-    LenEnc       lenEnc_;
-    LzmaProb     distSlot_[4][64];
-    LzmaProb     distAlign_[16];
-    uint32_t     hashTable_[1 << 16];
-    uint32_t     chain_[1 << 22];
-    uint32_t     dictSize_ = 1 << 22;
+    uint32_t lc_ = 3, lp_ = 0, pb_ = 2;
+    uint32_t state_;
+    LzmaProb isMatch_[12][16];
+    LzmaProb isRep_[12];
+    LzmaProb litProb_[0x300 * (1 << 3)];
+    LenEnc lenEnc_;
+    LzmaProb distSlot_[4][64];
+    LzmaProb distAlign_[16];
+    uint32_t hashTable_[1 << 16];
+    uint32_t chain_[1 << 22];
+    uint32_t dictSize_ = 1 << 22;
 };
 
 #endif
