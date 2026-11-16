@@ -12,7 +12,7 @@ public:
         : buf_(in), bufSize_(inSize), bufPos_(0),
           code_(0), range_(0xFFFFFFFF)
     {
-        bufPos_++;
+        // bufPos_++;
         
         for (int i = 0; i < 5; i++)
         {
@@ -95,7 +95,12 @@ public:
     uint8_t  GetByte(uint32_t dist)
     {
         cout << outPos_  << ' ' << dist << endl;
-        return out_[outPos_ - dist];
+        if (dist >= outPos_)
+        {
+            cout << "bad distance " << dist << " at " << outPos_ << endl;
+            exit(1);
+        }
+        return out_[outPos_ - (dist + 1)];
     }
     uint8_t  DecodeLiteral(uint8_t prev);
     uint32_t DecodeDistance(uint32_t len);

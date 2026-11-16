@@ -107,9 +107,10 @@ void LzmaDec::Decode()
                 break;
             }
 
-            for (uint32_t i = 0; i < len; i++)
+            // len += 2;
+            for (uint32_t i = 0; i < len && outPos_ < outSize_; i++)
             {
-                PutByte(GetByte(dist + 1));
+                PutByte(GetByte(dist));
             }
 
             state_   = state_ < 7 ? 7 : 10;
@@ -156,5 +157,6 @@ uint32_t LzmaDec::DecodeDistance(uint32_t len)
 
     extra |= BitTreeDecode(rc_, distAlign_, 4);
 
+    cout << "D len " << len << " lenState " << lenState << " slot " << slot << " dist " << (base + extra) << endl;
     return base + extra;
 }

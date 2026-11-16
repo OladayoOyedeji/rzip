@@ -47,7 +47,7 @@ void RangeEncoder::ShiftLow()
         cacheSize_++;
     }
 
-    low_ = (low_ & 0xFFFFFFFF) << 8;
+    low_ = (low_ & 0x00FFFFFF) << 8;
 }
 
 void RangeEncoder::EncodeDirectBits(uint32_t value, int numBits)
@@ -149,11 +149,12 @@ uint32_t GetPosSlot(uint32_t dist)
     if (dist < 128) return kDistSlot_[dist];   // lookup table for small distances
 
     uint32_t n = 0;
-    uint32_t d = dist >> 7;
-    if (d >= (1<<4)) { n += 4; d >>= 4; }
-    if (d >= (1<<2)) { n += 2; d >>= 2; }
-    n += (d >> 1);
-    return (n << 1) + ((dist >> (n-1)) & 1) + 12;
+    while ((dist >> (n+1)) != 0) n++;
+    // uint32_t d = dist >> 7;
+    // if (d >= (1<<4)) { n += 4; d >>= 4; }
+    // if (d >= (1<<2)) { n += 2; d >>= 2; }
+    // n += (d >> 1);
+    return (n << 1) + ((dist >> (n-1)) & 1);
 }
 
 void LzmaEnc::EncodeDistance(uint32_t dist, uint32_t len)
@@ -179,6 +180,7 @@ void LzmaEnc::EncodeDistance(uint32_t dist, uint32_t len)
         BitTreeEncode(rc_, distAlign_, 4, extra & 0xF);
         
     }
+    cout << "D len " << len << " lenState " << lenState << " slot " << slot << " dist " << dist << endl;
 }
 
 void LzmaEnc::EncodeLiteral(uint32_t pos)
