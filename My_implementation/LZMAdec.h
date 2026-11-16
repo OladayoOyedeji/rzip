@@ -18,9 +18,9 @@ public:
         {
             code_ = (code_ << 8) | buf_[bufPos_++];
         }
-        cout << "DEC code_=" << code_ << " bufPos_=" << bufPos_ << endl;
-        cout << "DEC code_ hex=" << hex << code_ << dec << endl;
-        cout << "bufPos" << bufPos_ << endl;
+        // cout << "DEC code_=" << code_ << " bufPos_=" << bufPos_ << endl;
+        // cout << "DEC code_ hex=" << hex << code_ << dec << endl;
+        // cout << "bufPos" << bufPos_ << endl;
     }
     int DecodeBit(LzmaProb & prob);
     uint32_t DecodeDirectBits(int);
@@ -94,7 +94,7 @@ public:
     void     PutByte(uint8_t byte)  { out_[outPos_++] = byte; }
     uint8_t  GetByte(uint32_t dist)
     {
-        cout << outPos_  << ' ' << dist << endl;
+        // cout << outPos_  << ' ' << dist << endl;
         if (dist >= outPos_)
         {
             cout << "bad distance " << dist << " at " << outPos_ << endl;

@@ -84,16 +84,16 @@ void LzmaDec::Decode()
 
     while (!finished && outPos_ < outSize_)
     {
-        cout << outPos_ << endl;
+        // cout << outPos_ << endl;
         uint32_t posState = outPos_ & ((1 << pb_) - 1);
         
         int bit = rc_.DecodeBit(isMatch_[state_][posState]);
-        cout << "bit " << bit << endl;
+        // cout << "bit " << bit << endl;
         if (bit == 0)
         {
             uint8_t prev    = outPos_ > 0 ? out_[outPos_ - 1] : 0;
             uint8_t literal = DecodeLiteral(prev);
-            cout << "literal " << (int)literal << literal << endl;
+            // cout << "literal " << (int)literal << literal << endl;
             PutByte(literal);
             state_  = litNext[state_];
         }
@@ -101,7 +101,7 @@ void LzmaDec::Decode()
         {
             uint32_t len  = lenDec_.Decode(rc_, posState);
             uint32_t dist = DecodeDistance(len);
-            cout << "length: " << len << "distance: " << dist << endl;
+            // cout << "length: " << len << "distance: " << dist << endl;
             if (dist == 0xFFFFFFFF) {
                 finished = true;
                 break;
@@ -157,6 +157,6 @@ uint32_t LzmaDec::DecodeDistance(uint32_t len)
 
     extra |= BitTreeDecode(rc_, distAlign_, 4);
 
-    cout << "D len " << len << " lenState " << lenState << " slot " << slot << " dist " << (base + extra) << endl;
+    // cout << "D len " << len << " lenState " << lenState << " slot " << slot << " dist " << (base + extra) << endl;
     return base + extra;
 }

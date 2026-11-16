@@ -66,7 +66,7 @@ void RangeEncoder::EncodeDirectBits(uint32_t value, int numBits)
 
 void RangeEncoder::Flush()
 {
-    std::cout << "Flush\n";
+    // std::cout << "Flush\n";
     for (int i = 0; i < 5; i++)
     {
         ShiftLow();
@@ -180,7 +180,7 @@ void LzmaEnc::EncodeDistance(uint32_t dist, uint32_t len)
         BitTreeEncode(rc_, distAlign_, 4, extra & 0xF);
         
     }
-    cout << "D len " << len << " lenState " << lenState << " slot " << slot << " dist " << dist << endl;
+    // cout << "D len " << len << " lenState " << lenState << " slot " << slot << " dist " << dist << endl;
 }
 
 void LzmaEnc::EncodeLiteral(uint32_t pos)
@@ -209,19 +209,19 @@ bool LzmaEnc::Encode()
         if (len < 2)
         {
             rc_.EncodeBit(isMatch_[state_][posState], 0);
-            cout << "encode literal" << endl;
+            // cout << "encode literal" << endl;
             EncodeLiteral(pos);
-            cout << "literal: " << src_[pos] << endl;
+            // cout << "literal: " << src_[pos] << endl;
             
             state_ = transNext[state_];
             pos++;
         }
         else
         {
-            cout << "matched: <dist: " << dist
-                 << " len: " << len << "> index: "
-                 << pos << " to " << pos - dist
-                 << " \n";
+            // cout << "matched: <dist: " << dist
+            //      << " len: " << len << "> index: "
+            //      << pos << " to " << pos - dist
+            //      << " \n";
             // encode <len, dist>
             rc_.EncodeBit(isMatch_[state_][posState], 1);
             lenEnc_.Encode(rc_, posState, len);
